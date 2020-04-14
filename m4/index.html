@@ -1,390 +1,474 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8">
-<style>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 12px;
+        }
 
-body{
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 12px;
-}
+        svg {
+            margin-top: 5px;
+            /*border: 1px solid #ccc;*/
+        }
 
-svg{
-  margin-top: 5px;
-  /*border: 1px solid #ccc;*/
-}
+        text {
+            font-weight: 300;
+        }
 
-text{
-  font-weight: 300;
-}
+        .pie text {
+            font-weight: 900;
+        }
 
-.pie text{
-  font-weight: 900;
-}
-
-</style>
+        div.tooltip {
+            position: absolute;
+            text-align: center;
+            width: 110px;
+            height: 34px;
+            font: 14px sans-serif;
+            color: white;
+            background: #907d4e;
+            pointer-events: none;
+        }
+    </style>
 </head>
+
 <body>
 
-<div style="text-align: center;">
-  <svg style="text-align: center;"></svg>
-</div>
+    <div style="text-align: center;">
+        <svg style="text-align: center;"></svg>
+    </div>
 
-<div style="display: flex;" id="parent">
-<div id="chart" class="pie"></div>
-<div id="chart2" class="pie"></div>
-</div>
+    <div style="display: flex;" id="parent">
+        <div id="chart" class="pie"></div>
+        <div id="chart2" class="pie"></div>
+    </div>
 
-<script src="https://d3js.org/queue.v1.min.js"></script>
-<script src="https://d3js.org/d3.v3.min.js"></script>
-<!-- When import this way, the data is available as global variable "gridmapLayoutUsa" -->
-<script src="https://rawgit.com/kristw/gridmap-layout-usa/master/dist/gridmap-layout-usa.min.js"></script>
-<script>
+    <script src="https://d3js.org/queue.v1.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <!-- When import this way, the data is available as global variable "gridmapLayoutUsa" -->
+    <script src="https://rawgit.com/kristw/gridmap-layout-usa/master/dist/gridmap-layout-usa.min.js"></script>
+    <script>
 
-// var map_data = [{"name":"Albany", "sum":16067799.97},
-// {"name":"Virginia", "sum":67272862.26},
-// {"name":"Washington", "sum":259493372.76},
-// {"name":"California", "sum":1837664059.13},
-// {"name":"Georgia", "sum":88605118.85},
-// {"name":"North Carolina", "sum":83758276.08},
-// {"name":"New York", "sum":274639265.61},
-// {"name":"Ohio", "sum":74515368.99},
-// {"name":"Tennessee", "sum":35612089.23},
-// {"name":"New Mexico", "sum":144521839.78},
-// {"name":"Michigan", "sum":683276704.6},
-// {"name":"Florida", "sum":222338467.23},
-// {"name":"Arizona", "sum":195643312.5},
-// {"name":"Illinois", "sum":184372875.97},
-// {"name":"Alabama", "sum":28790004.74},
-// {"name":"Nevada", "sum":54376906.4},
-// {"name":"Massachusetts", "sum":97273984.83},
-// {"name":"Texas", "sum":411587154.35},
-// {"name":"Oregon", "sum":110552211.6},
-// {"name":"Louisiana", "sum":45695136.58},
-// {"name":"Colorado", "sum":138902535.99},
-// {"name":"Indiana", "sum":30263391.43},
-// {"name":"Pennsylvania", "sum":132454002.67},
-// {"name":"Kentucky", "sum":16097002.4},
-// {"name":"South Carolina", "sum":60753772.9},
-// {"name":"Idaho", "sum":14413187.75},
-// {"name":"Missouri", "sum":32072833.33}];
 
-var map_data = [{'name':'New York', 'sum':20137784},
-{'name':'Georgia', 'sum':80021488},
-{'name':'Idaho', 'sum':9013775},
-{'name':'Massachusetts', 'sum':75778507},
-{'name':'North Carolina', 'sum':23857601},
-{'name':'Illinois', 'sum':116836909},
-{'name':'Colorado', 'sum':89407245},
-{'name':'Michigan', 'sum':60202762},
-{'name':'Texas', 'sum':152952802},
-{'name':'Indiana', 'sum':18280506},
-{'name':'Arkansas', 'sum':19071876},
-{'name':'Nevada', 'sum':36323911},
-{'name':'California', 'sum':593202014},
-{'name':'Tennessee', 'sum':22644921},
-{'name':'Florida', 'sum':88306911},
-{'name':'Pennsylvania', 'sum':59524449},
-{'name':'Oregon', 'sum':61047849},
-{'name':'Washington', 'sum':67833679}]
 
-let max = 0;
-for (let i = 0; i < map_data.length; i++) {
-    if (map_data[i]["sum"] > max) {
-        max = map_data[i]["sum"];
-    }
-}
+        // MARK: Vars
 
-let min = Number.MAX_VALUE;
-for (let i = 0; i < map_data.length; i++) {
-    if (map_data[i]["sum"] < min) {
-        min = map_data[i]["sum"];
-    }
-}
+        var options = {
+            rectWidth: 45,
+            rectHeight: 45
+        };
+        var div = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
 
-// Normalize sums
-for (let i = 0; i < map_data.length; i++) {
-    map_data[i]["norm_sum"] = Math.floor(((20 - 1) * (map_data[i]["sum"] - min)) / (max - min) + 1);
-}
 
-var options = {
-    rectWidth: 45,
-    rectHeight: 45
-};
+        // var map_data = [{"name":"Albany", "sum":16067799.97},
+        // {"name":"Virginia", "sum":67272862.26},
+        // {"name":"Washington", "sum":259493372.76},
+        // {"name":"California", "sum":1837664059.13},
+        // {"name":"Georgia", "sum":88605118.85},
+        // {"name":"North Carolina", "sum":83758276.08},
+        // {"name":"New York", "sum":274639265.61},
+        // {"name":"Ohio", "sum":74515368.99},
+        // {"name":"Tennessee", "sum":35612089.23},
+        // {"name":"New Mexico", "sum":144521839.78},
+        // {"name":"Michigan", "sum":683276704.6},
+        // {"name":"Florida", "sum":222338467.23},
+        // {"name":"Arizona", "sum":195643312.5},
+        // {"name":"Illinois", "sum":184372875.97},
+        // {"name":"Alabama", "sum":28790004.74},
+        // {"name":"Nevada", "sum":54376906.4},
+        // {"name":"Massachusetts", "sum":97273984.83},
+        // {"name":"Texas", "sum":411587154.35},
+        // {"name":"Oregon", "sum":110552211.6},
+        // {"name":"Louisiana", "sum":45695136.58},
+        // {"name":"Colorado", "sum":138902535.99},
+        // {"name":"Indiana", "sum":30263391.43},
+        // {"name":"Pennsylvania", "sum":132454002.67},
+        // {"name":"Kentucky", "sum":16097002.4},
+        // {"name":"South Carolina", "sum":60753772.9},
+        // {"name":"Idaho", "sum":14413187.75},
+        // {"name":"Missouri", "sum":32072833.33}];
 
-var color = d3.scale.quantize()
-    .domain([1, 20])
-    .range(['#b2ddf0', '#92bcd8', '#769cbf', '#5d7da7', '#46608f', '#334577', '#232d5f']);
+        var map_data = [{ 'name': 'New York', 'sum': 20137784 },
+        { 'name': 'Georgia', 'sum': 80021488 },
+        { 'name': 'Idaho', 'sum': 9013775 },
+        { 'name': 'Massachusetts', 'sum': 75778507 },
+        { 'name': 'North Carolina', 'sum': 23857601 },
+        { 'name': 'Illinois', 'sum': 116836909 },
+        { 'name': 'Colorado', 'sum': 89407245 },
+        { 'name': 'Michigan', 'sum': 60202762 },
+        { 'name': 'Texas', 'sum': 152952802 },
+        { 'name': 'Indiana', 'sum': 18280506 },
+        { 'name': 'Arkansas', 'sum': 19071876 },
+        { 'name': 'Nevada', 'sum': 36323911 },
+        { 'name': 'California', 'sum': 593202014 },
+        { 'name': 'Tennessee', 'sum': 22644921 },
+        { 'name': 'Florida', 'sum': 88306911 },
+        { 'name': 'Pennsylvania', 'sum': 59524449 },
+        { 'name': 'Oregon', 'sum': 61047849 },
+        { 'name': 'Washington', 'sum': 67833679 }]
 
-var svg = d3.select('svg')
-    .attr('width', 12 * options.rectWidth)
-    .attr('height', 8 * options.rectHeight);
-
-var sEnter = svg.append('g')
-    .selectAll('g')
-        .data(gridmapLayoutUsa)
-    .enter().append('g')
-        .attr('transform', function(d){
-            return 'translate('+(d.x*options.rectWidth)+','+(d.y*options.rectHeight)+')';
-    })
-    // .on('click',function(d){
-    //     console.log(d)
-    // });
-
-sEnter.append('rect')
-    .attr('width', options.rectWidth)
-    .attr('height', options.rectHeight)
-    .attr('vector-effect', 'non-scaling-stroke')
-    .style('opacity', 0.7)
-    .style('stroke', '#aaa')
-    .style('fill', function(d) {
+        let max = 0;
         for (let i = 0; i < map_data.length; i++) {
-            if (map_data[i]["name"] === d.name) {
-                map_data[i]['key'] = d.key;
-                map_data[i]['color'] = color(map_data[i]["norm_sum"]);
-                // console.log(map_data[i]["name"], map_data[i]["key"], map_data[i]["color"])
-                return color(map_data[i]["norm_sum"]);
+            if (map_data[i]["sum"] > max) {
+                max = map_data[i]["sum"];
             }
         }
-        return 'lightgrey';
-    });
 
-sEnter.append('text')
-    .attr('x', options.rectWidth/2)
-    .attr('y', options.rectHeight/2 + 2)
-    .style('text-anchor', 'middle')
-    .text(function(d){return d.key;});
+        let min = Number.MAX_VALUE;
+        for (let i = 0; i < map_data.length; i++) {
+            if (map_data[i]["sum"] < min) {
+                min = map_data[i]["sum"];
+            }
+        }
 
-// ==================================================================================
+        // Normalize sums
+        for (let i = 0; i < map_data.length; i++) {
+            map_data[i]["norm_sum"] = Math.floor(((20 - 1) * (map_data[i]["sum"] - min)) / (max - min) + 1);
+        }
 
-var bags_data = {
-    'New York':[{'label':'Small Bags', 'value':85},
-{'label':'Large Bags', 'value':13},
-{'label':'XLarge Bags', 'value':2}],
-'Georgia':[{'label':'Small Bags', 'value':66},
-{'label':'Large Bags', 'value':32},
-{'label':'XLarge Bags', 'value':2}],
-'Idaho':[{'label':'Small Bags', 'value':86},
-{'label':'Large Bags', 'value':13},
-{'label':'XLarge Bags', 'value':1}],
-'Massachusetts':[{'label':'Small Bags', 'value':92},
-{'label':'Large Bags', 'value':6},
-{'label':'XLarge Bags', 'value':2}],
-'North Carolina':[{'label':'Small Bags', 'value':90},
-{'label':'Large Bags', 'value':8},
-{'label':'XLarge Bags', 'value':2}],
-'Illinois':[{'label':'Small Bags', 'value':87},
-{'label':'Large Bags', 'value':10},
-{'label':'XLarge Bags', 'value':3}],
-'Colorado':[{'label':'Small Bags', 'value':32},
-{'label':'Large Bags', 'value':66},
-{'label':'XLarge Bags', 'value':2}],
-'Michigan':[{'label':'Small Bags', 'value':82},
-{'label':'Large Bags', 'value':10},
-{'label':'XLarge Bags', 'value':8}],
-'Texas':[{'label':'Small Bags', 'value':64},
-{'label':'Large Bags', 'value':34},
-{'label':'XLarge Bags', 'value':2}],
-'Indiana':[{'label':'Small Bags', 'value':55},
-{'label':'Large Bags', 'value':42},
-{'label':'XLarge Bags', 'value':3}],
-'Arkansas':[{'label':'Small Bags', 'value':44},
-{'label':'Large Bags', 'value':54},
-{'label':'XLarge Bags', 'value':2}],
-'Nevada':[{'label':'Small Bags', 'value':49},
-{'label':'Large Bags', 'value':50},
-{'label':'XLarge Bags', 'value':1}],
-'California':[{'label':'Small Bags', 'value':92},
-{'label':'Large Bags', 'value':5},
-{'label':'XLarge Bags', 'value':3}],
-'Tennessee':[{'label':'Small Bags', 'value':77},
-{'label':'Large Bags', 'value':21},
-{'label':'XLarge Bags', 'value':2}],
-'Florida':[{'label':'Small Bags', 'value':53},
-{'label':'Large Bags', 'value':44},
-{'label':'XLarge Bags', 'value':3}],
-'Pennsylvania':[{'label':'Small Bags', 'value':86},
-{'label':'Large Bags', 'value':13},
-{'label':'XLarge Bags', 'value':1}],
-'Oregon':[{'label':'Small Bags', 'value':83},
-{'label':'Large Bags', 'value':15},
-{'label':'XLarge Bags', 'value':2}],
-'Washington':[{'label':'Small Bags', 'value':83},
-{'label':'Large Bags', 'value':15},
-{'label':'XLarge Bags', 'value':2}]
-}
+        var options = {
+            rectWidth: 45,
+            rectHeight: 45
+        };
 
-// var bags_data = [
-//     {"label":"Colorectale levermetastase (n=336)", "value":74}, 
-//     {"label": "Primaire maligne levertumor (n=56)", "value":16},
-//     {"label":"Levensmetatase van andere origine (n=32)", "value":10}
-// ];
+        var color = d3.scaleOrdinal(d3.schemeGreens[9]);
 
-function drawBagsPie(data) {
+        var svg = d3.select('svg')
+            .attr('width', 13 * options.rectWidth)
+            .attr('height', 9 * options.rectHeight);
 
-    var w = 300;
-    var h = 300;
-    var r = h/2;
-    var aColor = [
-        'rgb(46, 139, 87)',
-        'rgb(80, 200, 120)',
-        'rgb(172, 225, 175)'
-    ]
 
-    var vis = d3.select('#chart').append("svg:svg").data([data]).attr("width", w).attr("height", h).append("svg:g").attr("transform", "translate(" + r + "," + r + ")");
 
-    var pie = d3.layout.pie().value(function(d){return d.value;});
 
-    // Declare an arc generator function
-    var arc = d3.svg.arc().outerRadius(r);
 
-    // Select paths, use arc generator to draw
-    var arcs = vis.selectAll("g.slice").data(pie).enter().append("svg:g").attr("class", "slice");
-    arcs.append("svg:path")
-        .attr("fill", function(d, i){return aColor[i];})
-        .attr("d", function (d) {return arc(d);})
-    ;
 
-    // Add the text
-    arcs.append("svg:text")
-        .attr("transform", function(d){
-            d.innerRadius = 50; /* Distance of label to the center*/
-            d.outerRadius = r/10;
-            return "translate(" + arc.centroid(d) + ")";}
-        )
-        .attr("text-anchor", "middle")
-        .text( function(d, i) {
-            return `${data[i].label} - ${data[i].value}%`;
-        });
 
-}
+        var sEnter = svg.append('g')
+            .selectAll('g')
+            .data(gridmapLayoutUsa)
+            .enter().append('g')
+            .attr('transform', function (d) {
+                return 'translate(' + (10 + d.x * options.rectWidth) + ',' + (10 + d.y * options.rectHeight) + ')';
+            }).on('mouseover', function (d) {
 
-drawBagsPie(bags_data['New York']);
+                var currentState = null; //grab currently hovered over state
+                for (i = 0; i < map_data.length; i++) {
+                    if (d.name == map_data[i].name) {
+                        currentState = map_data[i];
+                    }
+                }
 
-plus_data = {'New York':[{'label':'4046', 'value':4},
-{'label':'4225', 'value':94},
-{'label':'4770', 'value':2}],
-'Georgia':[{'label':'4046', 'value':77},
-{'label':'4225', 'value':20},
-{'label':'4770', 'value':3}],
-'Idaho':[{'label':'4046', 'value':75},
-{'label':'4225', 'value':12},
-{'label':'4770', 'value':13}],
-'Massachusetts':[{'label':'4046', 'value':2},
-{'label':'4225', 'value':95},
-{'label':'4770', 'value':3}],
-'North Carolina':[{'label':'4046', 'value':31},
-{'label':'4225', 'value':51},
-{'label':'4770', 'value':18}],
-'Illinois':[{'label':'4046', 'value':9},
-{'label':'4225', 'value':73},
-{'label':'4770', 'value':18}],
-'Colorado':[{'label':'4046', 'value':30},
-{'label':'4225', 'value':66},
-{'label':'4770', 'value':4}],
-'Michigan':[{'label':'4046', 'value':32},
-{'label':'4225', 'value':48},
-{'label':'4770', 'value':20}],
-'Texas':[{'label':'4046', 'value':65},
-{'label':'4225', 'value':31},
-{'label':'4770', 'value':4}],
-'Indiana':[{'label':'4046', 'value':13},
-{'label':'4225', 'value':79},
-{'label':'4770', 'value':8}],
-'Arkansas':[{'label':'4046', 'value':81},
-{'label':'4225', 'value':18},
-{'label':'4770', 'value':1}],
-'Nevada':[{'label':'4046', 'value':54},
-{'label':'4225', 'value':42},
-{'label':'4770', 'value':4}],
-'California':[{'label':'4046', 'value':53},
-{'label':'4225', 'value':43},
-{'label':'4770', 'value':4}],
-'Tennessee':[{'label':'4046', 'value':80},
-{'label':'4225', 'value':16},
-{'label':'4770', 'value':4}],
-'Florida':[{'label':'4046', 'value':78},
-{'label':'4225', 'value':21},
-{'label':'4770', 'value':1}],
-'Pennsylvania':[{'label':'4046', 'value':14},
-{'label':'4225', 'value':84},
-{'label':'4770', 'value':2}],
-'Oregon':[{'label':'4046', 'value':38},
-{'label':'4225', 'value':57},
-{'label':'4770', 'value':5}],
-'Washington':[{'label':'4046', 'value':37},
-{'label':'4225', 'value':60},
-{'label':'4770', 'value':3}]}
+                if (currentState != null) { //if data exists for that state show the tooltip
+                    div.transition()
+                        .duration(500)
+                        .style("opacity", .9);
+                    div.html(currentState.name + "<br>" + //...with the corresponding data and state name
+                        currentState.sum)
+                        .style("left", (d3.event.pageX - 50) + "px")
+                        .style("top", (d3.event.pageY) + "px");
+                }
+            }).on("mouseout", function (d) {
 
-function drawPLUsPie(data) {
+                div.transition() //on mouse out remove tooltip
+                    .duration(500)
+                    .style("opacity", 0);
+            });
 
-var w = 300;
-var h = 300;
-var r = h/2;
-var aColor = [
-    'rgb(46, 139, 87)',
-    'rgb(80, 200, 120)',
-    'rgb(172, 225, 175)'
-]
 
-var vis = d3.select('#chart2').append("svg:svg").data([data]).attr("width", w).attr("height", h).append("svg:g").attr("transform", "translate(" + r + "," + r + ")");
 
-var pie = d3.layout.pie().value(function(d){return d.value;});
+        sEnter.append('rect')
+            .attr('width', options.rectWidth)
+            .attr('height', options.rectHeight)
+            .attr('vector-effect', 'non-scaling-stroke')
+            .style('stroke', '#907d4e')
+            .style('stroke-width', 2)
+            .style('fill', function (d) {
+                var currentState = null;
+                for (i = 0; i < map_data.length; i++) {
+                    if (d.name == map_data[i].name) {
+                        currentState = map_data[i];
+                    }
+                }
+                if (currentState != null) { //if data exists for that state show the tooltip
+                    return color(currentState.sum);
+                } else {
+                    return color(0.05);
+                }
+            });
 
-// Declare an arc generator function
-var arc = d3.svg.arc().outerRadius(r);
 
-// Select paths, use arc generator to draw
-var arcs = vis.selectAll("g.slice").data(pie).enter().append("svg:g").attr("class", "slice");
-arcs.append("svg:path")
-    .attr("fill", function(d, i){return aColor[i];})
-    .attr("d", function (d) {return arc(d);})
-;
+        sEnter.append('image') //append the avocado image but only to the states that have volume data (the rest is size 0x0)
+            .attr('xlink:href', 'https://www.svgrepo.com/show/48219/avocado.svg')
+            .attr('x', options.rectWidth / 2 - 10)
+            .attr('y', options.rectHeight / 2 - 10)
+            .attr('width', function (d) {
+                for (i = 0; i < map_data.length; i++) {
+                    if (d.name == map_data[i].name) {
+                        var volume = map_data[i].sum;
+                        return 20;
+                    }
+                }
+            })
+            .attr('height', function (d) {
+                for (i = 0; i < map_data.length; i++) {
+                    if (d.name == map_data[i].name) {
+                        var volume = map_data[i].sum;
+                        return 20;
+                    }
+                }
+                return 0;
+            });
 
-// Add the text
-arcs.append("svg:text")
-    .attr("transform", function(d){
-        d.innerRadius = 70; /* Distance of label to the center*/
-        d.outerRadius = r/10;
-        return "translate(" + arc.centroid(d) + ")";}
-    )
-    .attr("text-anchor", "middle")
-    .text( function(d, i) {
-        return `${data[i].label} - ${data[i].value}%`;
-    });
 
-}
 
-drawPLUsPie(plus_data['New York']);
 
-sEnter.on("click", function(d){
-    if (bags_data[d.name]) {
-    // Remove chart
-    var element = document.getElementById('chart');
-    element.parentNode.removeChild(element);
 
-    element = document.getElementById('chart2');
-    element.parentNode.removeChild(element);
 
-    // <div style="text-align: center" id="chart" class="pie"></div>
-    var parent = document.getElementById('parent')
-    var div = document.createElement("div");
-    div.setAttribute('id', 'chart');
-    div.setAttribute('class', 'pie');
-    div.setAttribute('style', 'text-align: center');
-    parent.appendChild(div);
 
-    div = document.createElement("div");
-    div.setAttribute('id', 'chart2');
-    div.setAttribute('class', 'pie');
-    div.setAttribute('style', 'text-align: center');
-    parent.appendChild(div);
-    
-    drawBagsPie(bags_data[d.name]);
-    drawPLUsPie(plus_data[d.name])
-    }
-})
 
-</script>
+
+
+        // ==================================================================================
+        // MARK: Pie Charts
+
+        var bags_data = {
+            'New York': [{ 'label': 'Small Bags', 'value': 85 },
+            { 'label': 'Large Bags', 'value': 13 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'Georgia': [{ 'label': 'Small Bags', 'value': 66 },
+            { 'label': 'Large Bags', 'value': 32 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'Idaho': [{ 'label': 'Small Bags', 'value': 86 },
+            { 'label': 'Large Bags', 'value': 13 },
+            { 'label': 'XLarge Bags', 'value': 1 }],
+            'Massachusetts': [{ 'label': 'Small Bags', 'value': 92 },
+            { 'label': 'Large Bags', 'value': 6 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'North Carolina': [{ 'label': 'Small Bags', 'value': 90 },
+            { 'label': 'Large Bags', 'value': 8 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'Illinois': [{ 'label': 'Small Bags', 'value': 87 },
+            { 'label': 'Large Bags', 'value': 10 },
+            { 'label': 'XLarge Bags', 'value': 3 }],
+            'Colorado': [{ 'label': 'Small Bags', 'value': 32 },
+            { 'label': 'Large Bags', 'value': 66 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'Michigan': [{ 'label': 'Small Bags', 'value': 82 },
+            { 'label': 'Large Bags', 'value': 10 },
+            { 'label': 'XLarge Bags', 'value': 8 }],
+            'Texas': [{ 'label': 'Small Bags', 'value': 64 },
+            { 'label': 'Large Bags', 'value': 34 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'Indiana': [{ 'label': 'Small Bags', 'value': 55 },
+            { 'label': 'Large Bags', 'value': 42 },
+            { 'label': 'XLarge Bags', 'value': 3 }],
+            'Arkansas': [{ 'label': 'Small Bags', 'value': 44 },
+            { 'label': 'Large Bags', 'value': 54 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'Nevada': [{ 'label': 'Small Bags', 'value': 49 },
+            { 'label': 'Large Bags', 'value': 50 },
+            { 'label': 'XLarge Bags', 'value': 1 }],
+            'California': [{ 'label': 'Small Bags', 'value': 92 },
+            { 'label': 'Large Bags', 'value': 5 },
+            { 'label': 'XLarge Bags', 'value': 3 }],
+            'Tennessee': [{ 'label': 'Small Bags', 'value': 77 },
+            { 'label': 'Large Bags', 'value': 21 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'Florida': [{ 'label': 'Small Bags', 'value': 53 },
+            { 'label': 'Large Bags', 'value': 44 },
+            { 'label': 'XLarge Bags', 'value': 3 }],
+            'Pennsylvania': [{ 'label': 'Small Bags', 'value': 86 },
+            { 'label': 'Large Bags', 'value': 13 },
+            { 'label': 'XLarge Bags', 'value': 1 }],
+            'Oregon': [{ 'label': 'Small Bags', 'value': 83 },
+            { 'label': 'Large Bags', 'value': 15 },
+            { 'label': 'XLarge Bags', 'value': 2 }],
+            'Washington': [{ 'label': 'Small Bags', 'value': 83 },
+            { 'label': 'Large Bags', 'value': 15 },
+            { 'label': 'XLarge Bags', 'value': 2 }]
+        }
+
+        // var bags_data = [
+        //     {"label":"Colorectale levermetastase (n=336)", "value":74}, 
+        //     {"label": "Primaire maligne levertumor (n=56)", "value":16},
+        //     {"label":"Levensmetatase van andere origine (n=32)", "value":10}
+        // ];
+
+        function drawBagsPie(data) {
+
+            var w = 300;
+            var h = 300;
+            var r = h / 2;
+            var aColor = [
+                'rgb(46, 139, 87)',
+                'rgb(80, 200, 120)',
+                'rgb(172, 225, 175)'
+            ]
+
+            var vis = d3.select('#chart').append("svg:svg").data([data]).attr("width", w).attr("height", h).append("svg:g").attr("transform", "translate(" + r + "," + r + ")");
+
+            var pie = d3.pie().value(function (d) { return d.value; });
+
+            // Declare an arc generator function
+            var arc = d3.arc().outerRadius(r);
+
+            // Select paths, use arc generator to draw
+            var arcs = vis.selectAll("g.slice").data(pie).enter().append("svg:g").attr("class", "slice");
+            arcs.append("svg:path")
+                .attr("fill", function (d, i) { return aColor[i]; })
+                .attr("d", function (d) { return arc(d); })
+                ;
+
+            // Add the text
+            arcs.append("svg:text")
+                .attr("transform", function (d) {
+                    d.innerRadius = 50; /* Distance of label to the center*/
+                    d.outerRadius = r / 10;
+                    return "translate(" + arc.centroid(d) + ")";
+                }
+                )
+                .attr("text-anchor", "middle")
+                .text(function (d, i) {
+                    return `${data[i].label} - ${data[i].value}%`;
+                });
+
+        }
+
+        drawBagsPie(bags_data['New York']);
+
+        plus_data = {
+            'New York': [{ 'label': '4046', 'value': 4 },
+            { 'label': '4225', 'value': 94 },
+            { 'label': '4770', 'value': 2 }],
+            'Georgia': [{ 'label': '4046', 'value': 77 },
+            { 'label': '4225', 'value': 20 },
+            { 'label': '4770', 'value': 3 }],
+            'Idaho': [{ 'label': '4046', 'value': 75 },
+            { 'label': '4225', 'value': 12 },
+            { 'label': '4770', 'value': 13 }],
+            'Massachusetts': [{ 'label': '4046', 'value': 2 },
+            { 'label': '4225', 'value': 95 },
+            { 'label': '4770', 'value': 3 }],
+            'North Carolina': [{ 'label': '4046', 'value': 31 },
+            { 'label': '4225', 'value': 51 },
+            { 'label': '4770', 'value': 18 }],
+            'Illinois': [{ 'label': '4046', 'value': 9 },
+            { 'label': '4225', 'value': 73 },
+            { 'label': '4770', 'value': 18 }],
+            'Colorado': [{ 'label': '4046', 'value': 30 },
+            { 'label': '4225', 'value': 66 },
+            { 'label': '4770', 'value': 4 }],
+            'Michigan': [{ 'label': '4046', 'value': 32 },
+            { 'label': '4225', 'value': 48 },
+            { 'label': '4770', 'value': 20 }],
+            'Texas': [{ 'label': '4046', 'value': 65 },
+            { 'label': '4225', 'value': 31 },
+            { 'label': '4770', 'value': 4 }],
+            'Indiana': [{ 'label': '4046', 'value': 13 },
+            { 'label': '4225', 'value': 79 },
+            { 'label': '4770', 'value': 8 }],
+            'Arkansas': [{ 'label': '4046', 'value': 81 },
+            { 'label': '4225', 'value': 18 },
+            { 'label': '4770', 'value': 1 }],
+            'Nevada': [{ 'label': '4046', 'value': 54 },
+            { 'label': '4225', 'value': 42 },
+            { 'label': '4770', 'value': 4 }],
+            'California': [{ 'label': '4046', 'value': 53 },
+            { 'label': '4225', 'value': 43 },
+            { 'label': '4770', 'value': 4 }],
+            'Tennessee': [{ 'label': '4046', 'value': 80 },
+            { 'label': '4225', 'value': 16 },
+            { 'label': '4770', 'value': 4 }],
+            'Florida': [{ 'label': '4046', 'value': 78 },
+            { 'label': '4225', 'value': 21 },
+            { 'label': '4770', 'value': 1 }],
+            'Pennsylvania': [{ 'label': '4046', 'value': 14 },
+            { 'label': '4225', 'value': 84 },
+            { 'label': '4770', 'value': 2 }],
+            'Oregon': [{ 'label': '4046', 'value': 38 },
+            { 'label': '4225', 'value': 57 },
+            { 'label': '4770', 'value': 5 }],
+            'Washington': [{ 'label': '4046', 'value': 37 },
+            { 'label': '4225', 'value': 60 },
+            { 'label': '4770', 'value': 3 }]
+        }
+
+        function drawPLUsPie(data) {
+
+            var w = 300;
+            var h = 300;
+            var r = h / 2;
+            var aColor = [
+                'rgb(46, 139, 87)',
+                'rgb(80, 200, 120)',
+                'rgb(172, 225, 175)'
+            ]
+
+            var vis = d3.select('#chart2').append("svg:svg").data([data]).attr("width", w).attr("height", h).append("svg:g").attr("transform", "translate(" + r + "," + r + ")");
+
+            var pie = d3.pie().value(function (d) { return d.value; });
+
+            // Declare an arc generator function
+            var arc = d3.arc().outerRadius(r);
+
+            // Select paths, use arc generator to draw
+            var arcs = vis.selectAll("g.slice").data(pie).enter().append("svg:g").attr("class", "slice");
+            arcs.append("svg:path")
+                .attr("fill", function (d, i) { return aColor[i]; })
+                .attr("d", function (d) { return arc(d); })
+                ;
+
+            // Add the text
+            arcs.append("svg:text")
+                .attr("transform", function (d) {
+                    d.innerRadius = 70; /* Distance of label to the center*/
+                    d.outerRadius = r / 10;
+                    return "translate(" + arc.centroid(d) + ")";
+                }
+                )
+                .attr("text-anchor", "middle")
+                .text(function (d, i) {
+                    return `${data[i].label} - ${data[i].value}%`;
+                });
+
+        }
+
+        drawPLUsPie(plus_data['New York']);
+
+        sEnter.on("click", function (d) {
+            if (bags_data[d.name]) {
+                // Remove chart
+                var element = document.getElementById('chart');
+                element.parentNode.removeChild(element);
+
+                element = document.getElementById('chart2');
+                element.parentNode.removeChild(element);
+
+                // <div style="text-align: center" id="chart" class="pie"></div>
+                var parent = document.getElementById('parent')
+                var div = document.createElement("div");
+                div.setAttribute('id', 'chart');
+                div.setAttribute('class', 'pie');
+                div.setAttribute('style', 'text-align: center');
+                parent.appendChild(div);
+
+                div = document.createElement("div");
+                div.setAttribute('id', 'chart2');
+                div.setAttribute('class', 'pie');
+                div.setAttribute('style', 'text-align: center');
+                parent.appendChild(div);
+
+                drawBagsPie(bags_data[d.name]);
+                drawPLUsPie(plus_data[d.name])
+            }
+        })
+
+    </script>
 </body>
+
 </html>
