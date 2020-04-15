@@ -22,6 +22,10 @@
             font-weight: 900;
         }
 
+        #chart {
+            margin-right: 10px;
+        }
+
         div.tooltip {
             position: absolute;
             text-align: center;
@@ -41,7 +45,7 @@
         <svg style="text-align: center;"></svg>
     </div>
 
-    <div style="display: flex;" id="parent">
+    <div style="display: flex; justify-content: center;" id="parent">
         <div id="chart" class="pie"></div>
         <div id="chart2" class="pie"></div>
     </div>
@@ -315,14 +319,13 @@
             var pie = d3.pie().value(function (d) { return d.value; });
 
             // Declare an arc generator function
-            var arc = d3.arc().outerRadius(r);
+            var arc = d3.arc().outerRadius(r).innerRadius(0);
 
             // Select paths, use arc generator to draw
             var arcs = vis.selectAll("g.slice").data(pie).enter().append("svg:g").attr("class", "slice");
             arcs.append("svg:path")
                 .attr("fill", function (d, i) { return aColor[i]; })
-                .attr("d", function (d) { return arc(d); })
-                ;
+                .attr("d", function (d) { return arc(d); });
 
             // Add the text
             arcs.append("svg:text")
@@ -339,7 +342,7 @@
 
         }
 
-        drawBagsPie(bags_data['New York']);
+        drawBagsPie(bags_data['Arkansas']);
 
         plus_data = {
             'New York': [{ 'label': '4046', 'value': 4 },
@@ -400,6 +403,8 @@
 
         function drawPLUsPie(data) {
 
+            console.log(data)
+
             var w = 300;
             var h = 300;
             var r = h / 2;
@@ -411,36 +416,45 @@
 
             var vis = d3.select('#chart2').append("svg:svg").data([data]).attr("width", w).attr("height", h).append("svg:g").attr("transform", "translate(" + r + "," + r + ")");
 
-            var pie = d3.pie().value(function (d) { return d.value; });
+            var pie = d3.pie()
+            .value(function (d) { 
+                return d.value; 
+            });
 
             // Declare an arc generator function
-            var arc = d3.arc().outerRadius(r);
+            var arc = d3.arc().outerRadius(r).innerRadius(0);
 
             // Select paths, use arc generator to draw
-            var arcs = vis.selectAll("g.slice").data(pie).enter().append("svg:g").attr("class", "slice");
+            var arcs = vis
+            .selectAll("g.slice")
+            .data(pie)
+            .enter()
+            .append("svg:g")
+            .attr("class", "slice");
+
             arcs.append("svg:path")
                 .attr("fill", function (d, i) { return aColor[i]; })
-                .attr("d", function (d) { return arc(d); })
-                ;
+                .attr("d", function (d) { return arc(d); });
 
             // Add the text
             arcs.append("svg:text")
-                .attr("transform", function (d) {
-                    d.innerRadius = 70; /* Distance of label to the center*/
-                    d.outerRadius = r / 10;
-                    return "translate(" + arc.centroid(d) + ")";
-                }
-                )
-                .attr("text-anchor", "middle")
-                .text(function (d, i) {
-                    return `${data[i].label} - ${data[i].value}%`;
-                });
-
+            .attr("transform", function (d) {
+                d.innerRadius = 70; /* Distance of label to the center*/
+                d.outerRadius = r / 10;
+                return "translate(" + arc.centroid(d) + ")";
+            })
+            .attr("text-anchor", "middle")
+            .text(function (d, i) {
+                return `${data[i].label} - ${data[i].value}%`;
+            });
         }
 
-        drawPLUsPie(plus_data['New York']);
+        drawPLUsPie(plus_data['Arkansas']);
 
         sEnter.on("click", function (d) {
+
+            console.log(d.name)
+
             if (bags_data[d.name]) {
                 // Remove chart
                 var element = document.getElementById('chart');
