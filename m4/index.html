@@ -146,7 +146,7 @@
             rectHeight: 45
         };
 
-        var color = d3.scaleOrdinal(d3.schemeGreens[9]);
+        var color = d3.scaleOrdinal().domain(map_data.sort()).range(d3.schemeGreens[9]);
 
         var svg = d3.select('svg')
             .attr('width', 13 * options.rectWidth)
@@ -178,7 +178,7 @@
                         .duration(500)
                         .style("opacity", .9);
                     div.html(currentState.name + "<br>" + //...with the corresponding data and state name
-                        currentState.sum)
+                        currentState.sum + " sold")
                         .style("left", (d3.event.pageX - 50) + "px")
                         .style("top", (d3.event.pageY) + "px");
                 }
@@ -207,7 +207,7 @@
                 if (currentState != null) { //if data exists for that state show the tooltip
                     return color(currentState.sum);
                 } else {
-                    return color(0.05);
+                    return color(0);
                 }
             });
 
